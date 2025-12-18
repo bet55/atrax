@@ -1,0 +1,47 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: phone_lookup_postgres
+    environment:
+      POSTGRES_DB: phone_lookup
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+
+  web:
+    image: python:3.11-slim
+    container_name: phone_lookup_web
+    working_dir: /app
+    command: >
+      bash -c "
+             pip install uv --progress-bar off --no-cache-dir&&
+             uv venv &&
+             uv sync --frozen &&
+             cd phone_lookup &&
+             uv run manage.py migrate &&
+             uv run manage.py runserver 0.0.0.0:8000"
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    environment:
+      - DEBUG=True
+      - DB_HOST=postgres
+      - PYTHONUNBUFFERED=1
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+
+volumes:
+  postgres_data:
