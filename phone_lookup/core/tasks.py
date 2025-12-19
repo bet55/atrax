@@ -1,5 +1,5 @@
 from celery import shared_task
-from core.services.db_sync import DbSyncService
+from core.services.registry_sync_service import RegistrySyncService
 import logging
 
 logger = logging.getLogger(__name__)
@@ -9,12 +9,12 @@ logger = logging.getLogger(__name__)
 def update_registry_task():
     """
     Celery задача для обновления реестра.
-    Запускается автоматически раз в сутки.
     """
+
     logger.info("Запуск автоматического обновления реестра...")
 
     try:
-        result = DbSyncService.update_registry()
+        result = RegistrySyncService.update_registry()
         logger.info(f"Реестр обновлен. Загружено: {result['loaded']}, Создано: {result['created']}")
         return result
     except Exception as e:

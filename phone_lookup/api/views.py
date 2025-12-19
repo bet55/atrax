@@ -26,7 +26,6 @@ class PhoneLookupAPIView(APIView):
     """
 
     def get(self, request):
-        # Получаем номер из query parameters
         serializer = PhoneLookupSerializer(data=request.query_params)
 
         if not serializer.is_valid():
@@ -37,11 +36,9 @@ class PhoneLookupAPIView(APIView):
 
         phone = serializer.validated_data['phone']
 
-        # Ищем информацию
         result = PhoneLookupService.lookup(phone)
 
         if result:
-            # Успешный ответ
             response_data = {
                 'phone': phone,
                 'operator': result['operator'],
@@ -52,9 +49,11 @@ class PhoneLookupAPIView(APIView):
             if result['inn']:
                 response_data['inn'] = result['inn']
 
-            return Response(response_data, status=status.HTTP_200_OK)
+            return Response(
+                response_data,
+                status=status.HTTP_200_OK
+            )
         else:
-            # Номер не найден
             return Response(
                 {'error': 'Номер не найден в реестре'},
                 status=status.HTTP_404_NOT_FOUND

@@ -6,16 +6,15 @@ def phone_lookup_form(request):
     """
     Веб-форма для поиска информации по номеру телефона.
     """
+
     context = {}
 
     if request.method == 'POST':
         phone = request.POST.get('phone', '').strip()
 
         if phone:
-            # Сохраняем введенный номер для отображения в форме
             context['phone_input'] = phone
 
-            # Ищем информацию
             result = PhoneLookupService.lookup(phone)
 
             if result:

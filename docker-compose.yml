@@ -16,6 +16,18 @@ services:
       timeout: 5s
       retries: 5
 
+  redis:
+    image: redis:7-alpine
+    container_name: phone_lookup_redis
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   web:
     image: python:3.11-slim
@@ -23,9 +35,10 @@ services:
     working_dir: /app
     command: >
       bash -c "
-             pip install uv --progress-bar off --no-cache-dir&&
+             pip install uv &&
              uv venv &&
-             uv sync --frozen &&
+             source .venv/bin/activate &&
+             uv sync &&
              cd phone_lookup &&
              uv run manage.py migrate &&
              uv run manage.py runserver 0.0.0.0:8000"
@@ -40,8 +53,72 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     restart: unless-stopped
 
+  celery_worker:
+    image: python:3.11-slim
+    container_name: phone_lookup_celery_worker
+    working_dir: /app
+    command: >
+      bash -c "pip install uv &&
+             uv venv &&
+             source .venv/bin/activate &&
+             uv sync &&
+             cd phone_lookup &&
+             uv run --directory /app/phone_lookup celery -A phone_lookup worker --loglevel=info"
+    volumes:
+      - .:/app
+    environment:
+      - DEBUG=True
+      - DB_HOST=postgres
+      - DB_NAME=phone_lookup
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - DB_PORT=5432
+      - REDIS_HOST=redis
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - PYTHONUNBUFFERED=1
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  celery_beat:
+    image: python:3.11-slim
+    container_name: phone_lookup_celery_beat
+    working_dir: /app
+    command: >
+      bash -c "pip install uv &&
+             uv venv &&
+             source .venv/bin/activate &&
+             uv sync &&
+             cd phone_lookup &&
+             uv run celery -A phone_lookup beat --loglevel=info --scheduler django_celery_beat.schedulers:DatabaseScheduler"
+    volumes:
+      - .:/app
+    environment:
+      - DEBUG=True
+      - DB_HOST=postgres
+      - DB_NAME=phone_lookup
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - DB_PORT=5432
+      - REDIS_HOST=redis
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - PYTHONUNBUFFERED=1
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
 
 volumes:
   postgres_data:
+  redis_data:

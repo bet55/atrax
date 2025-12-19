@@ -8,6 +8,7 @@ class PhoneLookupService:
     @staticmethod
     def normalize_phone(phone: str) -> Optional[str]:
         """Очищает и нормализует номер телефона."""
+
         digits = ''.join(filter(str.isdigit, phone))
 
         # Приводим номер к формату 7XXXXXXXXXX
@@ -27,6 +28,7 @@ class PhoneLookupService:
         Ищет информацию по номеру телефона.
         Возвращает словарь с данными или None если не найден.
         """
+
         normalized = PhoneLookupService.normalize_phone(phone)
 
         if not normalized:

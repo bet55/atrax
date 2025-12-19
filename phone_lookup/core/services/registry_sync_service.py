@@ -13,6 +13,7 @@ class RegistrySyncService:
     @staticmethod
     def _parse_row(row: dict) -> dict | None:
         """Парсит строку CSV в формат для БД."""
+
         try:
             return {
                 'abc': int(row['АВС/ DEF']),
@@ -29,6 +30,8 @@ class RegistrySyncService:
 
     @staticmethod
     def _download_csv(url: str, headers: dict[str, str]) -> str:
+        """Загружает CSV."""
+
         try:
             response = requests.get(
                 url=url,
@@ -42,6 +45,8 @@ class RegistrySyncService:
 
     @classmethod
     def _parse_csv(cls, data: str) -> list[dict]:
+        """Парсит весь CSV."""
+
         reader = csv.DictReader(data.splitlines(), delimiter=';')
 
         data = []
@@ -54,6 +59,8 @@ class RegistrySyncService:
 
     @staticmethod
     def _replace_phone_ranges(data: list[dict]) -> dict:
+        """Заменяет весь реестр новыми данными."""
+
         with transaction.atomic():
             # Удаляем все старые записи
             PhoneRange.objects.all().delete()
