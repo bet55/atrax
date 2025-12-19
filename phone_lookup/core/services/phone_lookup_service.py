@@ -5,6 +5,9 @@ from core.models import PhoneRange
 class PhoneLookupService:
     """Сервис для поиска информации по номеру телефона."""
 
+    NUMBER_BASE = 70000000000
+    SUFFIX_LENGTH = 10000000
+
     @staticmethod
     def normalize_phone(phone: str) -> Optional[str]:
         """Очищает и нормализует номер телефона."""
@@ -22,8 +25,8 @@ class PhoneLookupService:
 
         return None
 
-    @staticmethod
-    def lookup(phone: str) -> Optional[Dict]:
+    @classmethod
+    def lookup(cls, phone: str) -> Optional[Dict]:
         """
         Ищет информацию по номеру телефона.
         Возвращает словарь с данными или None если не найден.
@@ -40,7 +43,7 @@ class PhoneLookupService:
             return None
 
         abc = int(normalized[1:4])
-        suffix = full_number - 70000000000 - abc * 10000000
+        suffix = full_number - cls.NUMBER_BASE - abc * cls.SUFFIX_LENGTH
 
         phone_range = PhoneRange.objects.filter(
             abc=abc,
