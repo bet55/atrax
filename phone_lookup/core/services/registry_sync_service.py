@@ -5,7 +5,6 @@ from core.models import PhoneRange
 
 
 class RegistrySyncService:
-    CSV_URL = 'https://opendata.digital.gov.ru/downloads/DEF-9xx.csv'
     CSV_MAP = {
         'https://opendata.digital.gov.ru/downloads/ABC-3xx.csv': '3xx',
         'https://opendata.digital.gov.ru/downloads/ABC-4xx.csv': '4xx',
