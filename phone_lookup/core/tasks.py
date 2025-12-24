@@ -14,9 +14,12 @@ def update_registry_task():
     logger.info("Запуск автоматического обновления реестра...")
 
     try:
-        result = RegistrySyncService.update_registry()
-        logger.info(f"Реестр обновлен. Загружено: {result['loaded']}, Создано: {result['created']}")
-        return result
+        full_result = RegistrySyncService.update_registry()
+        for registry_result in full_result:
+            logger.info(
+                f'Реестр: {registry_result["registry"]}, Загружено: {registry_result["loaded"]}, Создано: {registry_result["created"]}'
+            )
+        return full_result
     except Exception as e:
         logger.error(f"Ошибка при обновлении реестра: {e}")
         raise

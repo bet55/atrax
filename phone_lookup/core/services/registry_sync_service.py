@@ -6,16 +6,23 @@ from core.models import PhoneRange
 
 class RegistrySyncService:
     CSV_URL = 'https://opendata.digital.gov.ru/downloads/DEF-9xx.csv'
+    CSV_MAP = {
+        'https://opendata.digital.gov.ru/downloads/ABC-3xx.csv': '3xx',
+        'https://opendata.digital.gov.ru/downloads/ABC-4xx.csv': '4xx',
+        'https://opendata.digital.gov.ru/downloads/ABC-8xx.csv': '8xx',
+        'https://opendata.digital.gov.ru/downloads/DEF-9xx.csv': '9xx',
+    }
     HEADERS = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
     }
 
-    @staticmethod
-    def _parse_row(row: dict) -> dict | None:
+    @classmethod
+    def _parse_row(cls, row: dict) -> dict | None:
         """Парсит строку CSV в формат для БД."""
 
         try:
             return {
+                'registry_source': cls.current_registry_source,
                 'abc': int(row['АВС/ DEF']),
                 'start_range': int(row['От']),
                 'end_range': int(row['До']),
@@ -44,10 +51,10 @@ class RegistrySyncService:
             pass
 
     @classmethod
-    def _parse_csv(cls, data: str) -> list[dict]:
+    def _parse_csv(cls, csv_data: str) -> list[dict]:
         """Парсит весь CSV."""
 
-        reader = csv.DictReader(data.splitlines(), delimiter=';')
+        reader = csv.DictReader(csv_data.splitlines(), delimiter=';')
 
         data = []
         for row in reader:
@@ -57,13 +64,15 @@ class RegistrySyncService:
 
         return data
 
-    @staticmethod
-    def _replace_phone_ranges(data: list[dict]) -> dict:
+    @classmethod
+    def _replace_phone_ranges(cls, data: list[dict]) -> dict:
         """Заменяет весь реестр новыми данными."""
 
         with transaction.atomic():
             # Удаляем все старые записи
-            PhoneRange.objects.all().delete()
+            PhoneRange.objects.filter(
+                registry_source = cls.current_registry_source,
+            ).delete()
 
             # Создаем новые пачками
             batch_size = 1000
@@ -76,24 +85,35 @@ class RegistrySyncService:
                 created += len(batch)
 
         return {
+            'registry': cls.current_registry_source,
             'loaded': len(data),
             'created': created,
         }
 
     @classmethod
-    def update_registry(cls) -> dict:
+    def update_registry(cls) -> list[dict]:
         """Загружает CSV реестр и полностью обновляет БД."""
 
-        # Скачиваем CSV
-        csv = cls._download_csv(
-            cls.CSV_URL,
-            cls.HEADERS,
-        )
+        result_info = []
 
-        # Парсим CSV
-        data = cls._parse_csv(csv)
+        for url, registry_source in cls.CSV_MAP.items():
+            # Запоминаем с каким реестром работаем
+            cls.current_registry_source = registry_source
 
-        # Обновляем БД
-        result = cls._replace_phone_ranges(data)
+            # Скачиваем CSV
+            csv = cls._download_csv(
+                url,
+                cls.HEADERS,
+            )
 
-        return result
+            # Парсим CSV
+            data = cls._parse_csv(
+                csv
+            )
+
+            # Обновляем БД
+            result_info.append(
+                cls._replace_phone_ranges(data)
+            )
+
+        return result_info

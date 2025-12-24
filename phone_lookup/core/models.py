@@ -5,6 +5,18 @@ from django.db import models
 class PhoneRange(models.Model):
     """Модель для хранения диапазонов номеров из реестра."""
 
+    registry_source = models.CharField(
+        max_length=10,
+        choices=[
+            ('3xx', 'Диапазон 3XX'),
+            ('4xx', 'Диапазон 4XX'),
+            ('8xx', 'Диапазон 8XX'),
+            ('9xx', 'Диапазон 9XX'),
+        ],
+        default=None,
+        null=True,
+        db_index=True,
+    )
     abc = models.IntegerField(
         verbose_name='Код ABC/DEF',
         db_index=True,

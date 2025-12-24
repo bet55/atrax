@@ -7,5 +7,6 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         self.stdout.write('Начниаем обновление реестра')
-        result = RegistrySyncService.update_registry()
-        self.stdout.write(f'Загружено: {result["loaded"]}, Создано: {result["created"]}')
+        full_result = RegistrySyncService.update_registry()
+        for registry_result in full_result:
+            self.stdout.write(f'Реестр: {registry_result["registry"]}, Загружено: {registry_result["loaded"]}, Создано: {registry_result["created"]}')
